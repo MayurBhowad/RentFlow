@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Home, Loader2 } from 'lucide-react';
+import { ensureDefaultUtilityTypes } from '@/lib/utility-types';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -43,6 +44,9 @@ export default function RegisterPage() {
         setError(profileError.message);
         setLoading(false);
         return;
+      }
+      if (role === 'owner') {
+        await ensureDefaultUtilityTypes(supabase, data.user.id);
       }
     }
 

@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, Plus, Search, IndianRupee, Calendar, User } from 'lucide-react';
 import { MonthlyBill, Tenant, UtilityType } from '@/lib/types';
+import { ensureDefaultUtilityTypes, dedupeUtilityTypesByName } from '@/lib/utility-types';
 
 export default function BillsPage() {
   const { profile } = useAuth();
@@ -69,11 +70,14 @@ export default function BillsPage() {
   };
 
   const fetchUtilityTypes = async () => {
+    await ensureDefaultUtilityTypes(supabase, profile!.id);
     const { data } = await supabase
       .from('utility_types')
       .select('*')
-      .eq('owner_id', profile!.id);
-    setUtilityTypes(data || []);
+      .eq('owner_id', profile!.id)
+      .eq('is_active', true)
+      .order('name');
+    setUtilityTypes(dedupeUtilityTypesByName(data || []));
   };
 
   const handleGenerateBill = async (e: React.FormEvent) => {
@@ -176,11 +180,11 @@ export default function BillsPage() {
                   </div>
                   {formData.utilities.map((utility, index) => (
                     <div key={index} className="grid grid-cols-3 gap-2 items-end">
-                      <Select value={utility.utility_type_id} onValueChange={(v) => updateUtility(index, 'utility_type_id', v)}>
+                      <Select value={utility.utility_type_id || undefined} onValueChange={(v) => updateUtility(index, 'utility_type_id', v)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Type" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-[100]">
                           {utilityTypes.map((ut) => (
                             <SelectItem key={ut.id} value={ut.id}>{ut.name}</SelectItem>
                           ))}
