@@ -25,6 +25,8 @@ export default function BillsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     tenant_id: '',
     bill_month: '',
@@ -82,25 +84,33 @@ export default function BillsPage() {
 
   const handleGenerateBill = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError('');
+    setSubmitting(true);
+
     const utilitiesJson = formData.utilities
       .filter((u) => u.utility_type_id && u.amount)
       .map((u) => ({
         utility_type_id: u.utility_type_id,
         amount: parseFloat(u.amount),
-        notes: u.notes,
+        notes: u.notes || null,
       }));
 
-    const { data, error } = await supabase.rpc('generate_monthly_bill', {
+    const { error } = await supabase.rpc('generate_monthly_bill', {
       p_tenant_id: formData.tenant_id,
       p_bill_month: formData.bill_month + '-01',
-      p_utility_amounts: JSON.stringify(utilitiesJson),
+      p_utility_amounts: utilitiesJson,
     });
 
-    if (!error) {
-      setDialogOpen(false);
-      setFormData({ tenant_id: '', bill_month: '', utilities: [] });
-      fetchBills();
+    setSubmitting(false);
+
+    if (error) {
+      setSubmitError(error.message);
+      return;
     }
+
+    setDialogOpen(false);
+    setFormData({ tenant_id: '', bill_month: '', utilities: [] });
+    fetchBills();
   };
 
   const addUtilityField = () => {
@@ -141,7 +151,10 @@ export default function BillsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Bills</h1>
         {isOwner && (
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) setSubmitError('');
+          }}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
@@ -202,7 +215,12 @@ export default function BillsPage() {
                     </div>
                   ))}
                 </div>
-                <Button type="submit" className="w-full">Generate Bill</Button>
+                {submitError && (
+                  <p className="text-sm text-destructive">{submitError}</p>
+                )}
+                <Button type="submit" className="w-full" disabled={submitting}>
+                  {submitting ? 'Generating...' : 'Generate Bill'}
+                </Button>
               </form>
             </DialogContent>
           </Dialog>

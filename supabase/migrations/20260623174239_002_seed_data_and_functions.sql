@@ -152,6 +152,10 @@ BEGIN
 END;
 $$;
 
+GRANT EXECUTE ON FUNCTION generate_monthly_bill(uuid, date, jsonb) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_owner_dashboard_stats(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_tenant_dashboard_stats(uuid) TO authenticated;
+
 -- Trigger function to update bill status to overdue
 CREATE OR REPLACE FUNCTION check_overdue_bills()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
