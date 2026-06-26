@@ -11,7 +11,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Home, Loader2 } from 'lucide-react';
-import { ensureDefaultUtilityTypes } from '@/lib/utility-types';
+
+const DUPLICATE_EMAIL_MESSAGE =
+  'An account with this email already exists. Please sign in instead.';
+
+function isDuplicateSignup(data: Awaited<ReturnType<typeof supabase.auth.signUp>>['data']) {
+  return !data?.user?.identities?.length;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -20,34 +26,63 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<'owner' | 'tenant'>('owner');
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
     setLoading(true);
 
-    const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
-    if (signUpError) {
-      setError(signUpError.message);
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const { data: emailTaken, error: checkError } = await supabase.rpc(
+      'is_email_registered',
+      { p_email: normalizedEmail }
+    );
+    if (checkError) {
+      setError(checkError.message);
+      setLoading(false);
+      return;
+    }
+    if (emailTaken) {
+      setError(DUPLICATE_EMAIL_MESSAGE);
       setLoading(false);
       return;
     }
 
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id,
-        full_name: fullName,
-        role,
-      });
-      if (profileError) {
-        setError(profileError.message);
-        setLoading(false);
-        return;
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email: normalizedEmail,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+          role,
+        },
+      },
+    });
+    if (signUpError) {
+      const message = signUpError.message.toLowerCase();
+      if (message.includes('already registered') || message.includes('already exists')) {
+        setError(DUPLICATE_EMAIL_MESSAGE);
+      } else {
+        setError(signUpError.message);
       }
-      if (role === 'owner') {
-        await ensureDefaultUtilityTypes(supabase, data.user.id);
-      }
+      setLoading(false);
+      return;
+    }
+
+    if (isDuplicateSignup(data)) {
+      setError(DUPLICATE_EMAIL_MESSAGE);
+      setLoading(false);
+      return;
+    }
+
+    if (!data.session) {
+      setSuccessMessage('Check your email to confirm your account, then sign in.');
+      setLoading(false);
+      return;
     }
 
     router.push('/dashboard');
@@ -75,6 +110,11 @@ export default function RegisterPage() {
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              {successMessage && (
+                <Alert>
+                  <AlertDescription>{successMessage}</AlertDescription>
                 </Alert>
               )}
               <div className="space-y-2">

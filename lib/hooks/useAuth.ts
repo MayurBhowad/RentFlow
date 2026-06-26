@@ -1,22 +1,53 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase/client';
 import { Profile } from '@/lib/types';
+import { ensureDefaultUtilityTypes } from '@/lib/utility-types';
 
 export function useAuth() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = useCallback(async (authUser: User) => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', userId)
+      .eq('id', authUser.id)
       .maybeSingle();
+
     if (!error && data) {
       setProfile(data as Profile);
+      return;
+    }
+
+    const meta = authUser.user_metadata ?? {};
+    const role =
+      meta.role === 'owner' || meta.role === 'tenant' || meta.role === 'manager'
+        ? meta.role
+        : 'tenant';
+    const fullName =
+      (typeof meta.full_name === 'string' && meta.full_name) ||
+      authUser.email?.split('@')[0] ||
+      'User';
+
+    const { data: created, error: insertError } = await supabase
+      .from('profiles')
+      .insert({
+        id: authUser.id,
+        full_name: fullName,
+        role,
+      })
+      .select()
+      .single();
+
+    if (!insertError && created) {
+      setProfile(created as Profile);
+      if (role === 'owner') {
+        await ensureDefaultUtilityTypes(supabase, authUser.id);
+      }
     }
   }, []);
 
@@ -25,16 +56,16 @@ export function useAuth() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setUser(session.user);
-        await fetchProfile(session.user.id);
+        await fetchProfile(session.user);
       }
       setLoading(false);
     };
     getSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user);
-        (async () => { await fetchProfile(session.user.id); })();
+        void fetchProfile(session.user);
       } else {
         setUser(null);
         setProfile(null);
@@ -50,15 +81,16 @@ export function useAuth() {
   };
 
   const signUp = async (email: string, password: string, fullName: string, role: 'owner' | 'tenant') => {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) return { data: null, error };
-    if (data.user) {
-      await supabase.from('profiles').insert({
-        id: data.user.id,
-        full_name: fullName,
-        role,
-      });
-    }
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+          role,
+        },
+      },
+    });
     return { data, error };
   };
 

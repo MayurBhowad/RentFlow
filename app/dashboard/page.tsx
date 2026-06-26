@@ -40,7 +40,7 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
-  const { profile } = useAuth();
+  const { profile, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentBills, setRecentBills] = useState<MonthlyBill[]>([]);
   const [overdueTenants, setOverdueTenants] = useState<Tenant[]>([]);
@@ -50,9 +50,13 @@ export default function DashboardPage() {
   const isOwner = profile?.role === 'owner' || profile?.role === 'manager';
 
   useEffect(() => {
-    if (!profile?.id) return;
+    if (authLoading) return;
+    if (!profile?.id) {
+      setLoading(false);
+      return;
+    }
     fetchDashboardData();
-  }, [profile]);
+  }, [profile, authLoading]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -141,7 +145,7 @@ export default function DashboardPage() {
 
   const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#6366f1'];
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -150,6 +154,17 @@ export default function DashboardPage() {
           ))}
         </div>
         <Skeleton className="h-80" />
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <p className="text-lg font-medium">Could not load your profile</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          Try signing out and back in. If the problem persists, contact support.
+        </p>
       </div>
     );
   }
