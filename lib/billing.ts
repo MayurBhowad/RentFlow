@@ -27,3 +27,7 @@ export function getNextBillMonth(tenant: Tenant, lastBillMonth?: string | null):
 
   return toBillMonthInput(tenant.lease_start);
 }
+
+export function getPaymentDateForBillMonth(billMonth: string): string {
+  return `${addMonthsToBillMonth(toBillMonthInput(billMonth), 1)}-15`;
+}

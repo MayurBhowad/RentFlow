@@ -12,6 +12,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CreditCard, Plus, Search, IndianRupee, Calendar, FileText } from 'lucide-react';
 import { Payment, MonthlyBill } from '@/lib/types';
 
+function getDefaultPaymentDate(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getInitialFormData(bills: MonthlyBill[] = []) {
+  const firstBill = bills[0];
+  return {
+    monthly_bill_id: firstBill?.id ?? '',
+    amount: firstBill ? String(firstBill.balance_due) : '',
+    payment_date: getDefaultPaymentDate(),
+    payment_method: 'upi' as 'cash' | 'upi' | 'bank_transfer' | 'cheque' | 'other',
+    transaction_id: '',
+    notes: '',
+  };
+}
+
 export default function PaymentsPage() {
   const { profile } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -19,14 +39,7 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    monthly_bill_id: '',
-    amount: '',
-    payment_date: new Date().toISOString().split('T')[0],
-    payment_method: 'upi' as 'cash' | 'upi' | 'bank_transfer' | 'cheque' | 'other',
-    transaction_id: '',
-    notes: '',
-  });
+  const [formData, setFormData] = useState(getInitialFormData);
 
   useEffect(() => {
     if (profile?.id) {
@@ -86,12 +99,25 @@ export default function PaymentsPage() {
       }
 
       setDialogOpen(false);
-      setFormData({
-        monthly_bill_id: '', amount: '', payment_date: new Date().toISOString().split('T')[0],
-        payment_method: 'upi', transaction_id: '', notes: '',
-      });
+      setFormData(getInitialFormData(bills));
       fetchPayments();
       fetchBills();
+    }
+  };
+
+  const handleBillChange = (billId: string) => {
+    const bill = bills.find((b) => b.id === billId);
+    setFormData({
+      ...formData,
+      monthly_bill_id: billId,
+      amount: bill ? String(bill.balance_due) : '',
+    });
+  };
+
+  const handleDialogOpenChange = (open: boolean) => {
+    setDialogOpen(open);
+    if (open) {
+      setFormData(getInitialFormData(bills));
     }
   };
 
@@ -115,7 +141,7 @@ export default function PaymentsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Payments</h1>
         {isOwner && (
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
@@ -129,7 +155,7 @@ export default function PaymentsPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Bill</Label>
-                  <Select value={formData.monthly_bill_id} onValueChange={(v) => setFormData({ ...formData, monthly_bill_id: v })}>
+                  <Select value={formData.monthly_bill_id} onValueChange={handleBillChange}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select bill" />
                     </SelectTrigger>
