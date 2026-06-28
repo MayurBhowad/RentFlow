@@ -11,7 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, Plus, Search, IndianRupee, Calendar, User } from 'lucide-react';
-import { MonthlyBill, Tenant, UtilityType } from '@/lib/types';
+import { MonthlyBill, Tenant, UtilityBill, UtilityType } from '@/lib/types';
+import { getNextBillMonth } from '@/lib/billing';
 import { ensureDefaultUtilityTypes, dedupeUtilityTypesByName } from '@/lib/utility-types';
 
 export default function BillsPage() {
@@ -27,6 +28,7 @@ export default function BillsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [prefilling, setPrefilling] = useState(false);
   const [formData, setFormData] = useState({
     tenant_id: '',
     bill_month: '',
@@ -82,6 +84,49 @@ export default function BillsPage() {
     setUtilityTypes(dedupeUtilityTypesByName(data || []));
   };
 
+  const resetForm = () => {
+    setFormData({ tenant_id: '', bill_month: '', utilities: [] });
+  };
+
+  const handleTenantChange = async (tenantId: string) => {
+    const tenant = tenants.find((t) => t.id === tenantId);
+    if (!tenant) {
+      setFormData({ tenant_id: tenantId, bill_month: '', utilities: [] });
+      return;
+    }
+
+    setPrefilling(true);
+    const { data: lastBill } = await supabase
+      .from('monthly_bills')
+      .select('bill_month, utility_bills(utility_type_id, amount, notes)')
+      .eq('tenant_id', tenantId)
+      .order('bill_month', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const utilityBills = (lastBill?.utility_bills || []) as Pick<
+      UtilityBill,
+      'utility_type_id' | 'amount' | 'notes'
+    >[];
+
+    setFormData({
+      tenant_id: tenantId,
+      bill_month: getNextBillMonth(tenant, lastBill?.bill_month),
+      utilities: utilityBills.map((ub) => ({
+        utility_type_id: ub.utility_type_id,
+        amount: String(ub.amount),
+        notes: ub.notes || '',
+      })),
+    });
+    setPrefilling(false);
+  };
+
+  useEffect(() => {
+    if (dialogOpen && tenantFilter && tenants.length > 0 && !formData.tenant_id) {
+      handleTenantChange(tenantFilter);
+    }
+  }, [dialogOpen, tenantFilter, tenants]);
+
   const handleGenerateBill = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError('');
@@ -109,7 +154,7 @@ export default function BillsPage() {
     }
 
     setDialogOpen(false);
-    setFormData({ tenant_id: '', bill_month: '', utilities: [] });
+    resetForm();
     fetchBills();
   };
 
@@ -153,7 +198,10 @@ export default function BillsPage() {
         {isOwner && (
           <Dialog open={dialogOpen} onOpenChange={(open) => {
             setDialogOpen(open);
-            if (!open) setSubmitError('');
+            if (!open) {
+              setSubmitError('');
+              resetForm();
+            }
           }}>
             <DialogTrigger asChild>
               <Button>
@@ -168,7 +216,11 @@ export default function BillsPage() {
               <form onSubmit={handleGenerateBill} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Tenant</Label>
-                  <Select value={formData.tenant_id} onValueChange={(v) => setFormData({ ...formData, tenant_id: v })}>
+                  <Select
+                    value={formData.tenant_id}
+                    onValueChange={handleTenantChange}
+                    disabled={prefilling}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select tenant" />
                     </SelectTrigger>
@@ -181,16 +233,38 @@ export default function BillsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Bill Month</Label>
-                  <Input type="month" value={formData.bill_month} onChange={(e) => setFormData({ ...formData, bill_month: e.target.value })} required />
+                  <Input
+                    type="month"
+                    value={formData.bill_month}
+                    onChange={(e) => setFormData({ ...formData, bill_month: e.target.value })}
+                    required
+                    disabled={prefilling}
+                  />
+                  {formData.tenant_id && formData.bill_month && (
+                    <p className="text-xs text-muted-foreground">
+                      Auto-filled from billing cycle. You can change it if needed.
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>Utilities</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={addUtilityField}>
+                    <Button type="button" variant="outline" size="sm" onClick={addUtilityField} disabled={prefilling}>
                       <Plus className="h-3 w-3 mr-1" />
                       Add Utility
                     </Button>
                   </div>
+                  {prefilling ? (
+                    <p className="text-sm text-muted-foreground">Loading previous bill details...</p>
+                  ) : formData.utilities.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No utilities from the last bill. Add utilities below.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Pre-filled from last bill. Edit amounts, remove, or add more as needed.
+                    </p>
+                  )}
                   {formData.utilities.map((utility, index) => (
                     <div key={index} className="grid grid-cols-3 gap-2 items-end">
                       <Select value={utility.utility_type_id || undefined} onValueChange={(v) => updateUtility(index, 'utility_type_id', v)}>
@@ -218,7 +292,7 @@ export default function BillsPage() {
                 {submitError && (
                   <p className="text-sm text-destructive">{submitError}</p>
                 )}
-                <Button type="submit" className="w-full" disabled={submitting}>
+                <Button type="submit" className="w-full" disabled={submitting || prefilling}>
                   {submitting ? 'Generating...' : 'Generate Bill'}
                 </Button>
               </form>
