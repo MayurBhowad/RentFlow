@@ -101,6 +101,9 @@ export interface Payment {
   transaction_id: string | null;
   notes: string | null;
   created_at: string;
+  monthly_bill?: Pick<MonthlyBill, 'bill_month'> & {
+    tenant?: Pick<Tenant, 'full_name'>;
+  };
 }
 
 export interface Notification {

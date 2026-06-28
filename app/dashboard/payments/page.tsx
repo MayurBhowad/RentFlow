@@ -124,7 +124,7 @@ export default function PaymentsPage() {
   const isOwner = profile?.role === 'owner' || profile?.role === 'manager';
 
   const filtered = payments.filter((p) =>
-    (p.monthly_bill as any)?.tenant?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+    p.monthly_bill?.tenant?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
     p.payment_method.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -162,7 +162,7 @@ export default function PaymentsPage() {
                     <SelectContent>
                       {bills.map((b) => (
                         <SelectItem key={b.id} value={b.id}>
-                          {(b.tenant as any)?.full_name} - {new Date(b.bill_month).toLocaleString('default', { month: 'short', year: 'numeric' })} (Balance: {formatCurrency(b.balance_due)})
+                          {b.tenant?.full_name} - {new Date(b.bill_month).toLocaleString('default', { month: 'short', year: 'numeric' })} (Balance: {formatCurrency(b.balance_due)})
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -240,7 +240,7 @@ export default function PaymentsPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{(payment.monthly_bill as any)?.tenant?.full_name}</span>
+                      <span className="font-medium">{payment.monthly_bill?.tenant?.full_name}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="h-4 w-4" />
