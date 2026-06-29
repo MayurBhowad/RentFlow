@@ -93,10 +93,10 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8">
-          <div className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-xl">
+          <Link href="/" className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-xl">
             <Home className="h-6 w-6" />
             <span className="text-xl font-bold">RentFlow</span>
-          </div>
+          </Link>
         </div>
         <Card className="border-0 shadow-xl">
           <CardHeader className="space-y-1">

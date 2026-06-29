@@ -95,10 +95,10 @@ export default function Navbar() {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 flex-col border-r bg-card h-screen">
         <div className="flex items-center gap-2 px-6 py-5">
-          <div className="flex items-center gap-2 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg">
+          <Link href="/dashboard" className="flex items-center gap-2 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg">
             <Home className="h-5 w-5" />
             <span className="font-bold text-lg">RentFlow</span>
-          </div>
+          </Link>
         </div>
         <div className="flex-1 px-3 py-2 space-y-1 overflow-auto">
           <NavLinks />
@@ -136,17 +136,19 @@ export default function Navbar() {
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0">
               <div className="flex items-center gap-2 px-6 py-5">
-                <div className="flex items-center gap-2 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg">
+                <Link href="/dashboard" className="flex items-center gap-2 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg">
                   <Home className="h-5 w-5" />
                   <span className="font-bold text-lg">RentFlow</span>
-                </div>
+                </Link>
               </div>
               <div className="px-3 py-2 space-y-1">
                 <NavLinks />
               </div>
             </SheetContent>
           </Sheet>
-          <span className="font-bold text-lg">RentFlow</span>
+          <Link href="/dashboard" className="font-bold text-lg">
+            RentFlow
+          </Link>
         </div>
         <div className="flex items-center gap-2">
           <Button
