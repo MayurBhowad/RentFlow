@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CreditCard, Plus, Search, IndianRupee, Calendar, FileText } from 'lucide-react';
 import { Payment, MonthlyBill } from '@/lib/types';
+import { getLinkedTenantIds, isOwnerOrManager } from '@/lib/scope';
 
 function getDefaultPaymentDate(): string {
   const now = new Date();
@@ -50,16 +51,34 @@ export default function PaymentsPage() {
 
   const fetchPayments = async () => {
     setLoading(true);
-    const { data } = await supabase
+    let query = supabase
       .from('payments')
-      .select('*, monthly_bill:monthly_bills!inner(bill_month, tenant:tenants!inner(full_name))')
+      .select('*, monthly_bill:monthly_bills!inner(bill_month, owner_id, tenant:tenants!inner(full_name, user_id))')
       .order('payment_date', { ascending: false })
       .limit(50);
+
+    if (isOwnerOrManager(profile)) {
+      query = query.eq('monthly_bill.owner_id', profile!.id);
+    } else {
+      const tenantIds = await getLinkedTenantIds(supabase, profile!.id);
+      if (tenantIds.length === 0) {
+        setPayments([]);
+        setLoading(false);
+        return;
+      }
+      query = query.in('monthly_bill.tenant_id', tenantIds);
+    }
+
+    const { data } = await query;
     setPayments(data || []);
     setLoading(false);
   };
 
   const fetchBills = async () => {
+    if (!isOwnerOrManager(profile)) {
+      setBills([]);
+      return;
+    }
     const { data } = await supabase
       .from('monthly_bills')
       .select('*, tenant:tenants(full_name)')
@@ -121,7 +140,7 @@ export default function PaymentsPage() {
     }
   };
 
-  const isOwner = profile?.role === 'owner' || profile?.role === 'manager';
+  const isOwner = isOwnerOrManager(profile);
 
   const filtered = payments.filter((p) =>
     p.monthly_bill?.tenant?.full_name?.toLowerCase().includes(search.toLowerCase()) ||

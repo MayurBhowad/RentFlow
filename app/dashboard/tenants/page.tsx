@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, Plus, Search, Phone, Mail, Home, IndianRupee } from 'lucide-react';
 import { Tenant, Property } from '@/lib/types';
+import OwnerGuard from '@/components/auth/OwnerGuard';
 
 export default function TenantsPage() {
   const { profile } = useAuth();
@@ -86,6 +87,7 @@ export default function TenantsPage() {
   );
 
   return (
+    <OwnerGuard>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Tenants</h1>
@@ -249,5 +251,6 @@ export default function TenantsPage() {
         </div>
       )}
     </div>
+    </OwnerGuard>
   );
 }

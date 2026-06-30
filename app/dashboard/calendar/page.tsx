@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { MonthlyBill } from '@/lib/types';
+import { getLinkedTenantIds, isOwnerOrManager } from '@/lib/scope';
 
 export default function CalendarPage() {
   const { profile } = useAuth();
@@ -20,11 +21,24 @@ export default function CalendarPage() {
 
   const fetchBills = async () => {
     setLoading(true);
-    const { data } = await supabase
+    let query = supabase
       .from('monthly_bills')
       .select('*, tenant:tenants(full_name)')
-      .eq(profile?.role === 'owner' ? 'owner_id' : 'tenant_id', profile!.id)
       .order('due_date', { ascending: true });
+
+    if (isOwnerOrManager(profile)) {
+      query = query.eq('owner_id', profile!.id);
+    } else {
+      const tenantIds = await getLinkedTenantIds(supabase, profile!.id);
+      if (tenantIds.length === 0) {
+        setBills([]);
+        setLoading(false);
+        return;
+      }
+      query = query.in('tenant_id', tenantIds);
+    }
+
+    const { data } = await query;
     setBills(data || []);
     setLoading(false);
   };

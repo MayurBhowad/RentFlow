@@ -46,7 +46,6 @@ const tenantNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/bills', label: 'My Bills', icon: FileText },
   { href: '/dashboard/payments', label: 'Payment History', icon: CreditCard },
-  { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/dashboard/calendar', label: 'Calendar', icon: Calendar },
   { href: '/dashboard/notifications', label: 'Notifications', icon: Bell },
 ];

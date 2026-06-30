@@ -20,6 +20,7 @@ import {
   Cell,
 } from 'recharts';
 import { BarChart3, TrendingUp, PieChart as PieIcon } from 'lucide-react';
+import OwnerGuard from '@/components/auth/OwnerGuard';
 
 export default function AnalyticsPage() {
   const { profile } = useAuth();
@@ -90,8 +91,8 @@ export default function AnalyticsPage() {
       // Utility breakdown
       const { data: utilityBills } = await supabase
         .from('utility_bills')
-        .select('amount, utility_type:utility_types(name)')
-        .eq('owner_id', profile!.id);
+        .select('amount, utility_type:utility_types(name), monthly_bill:monthly_bills!inner(owner_id)')
+        .eq('monthly_bill.owner_id', profile!.id);
 
       const utilData = (utilityBills || []).reduce((acc: any[], curr: any) => {
         const name = curr.utility_type?.name || 'Other';
@@ -123,6 +124,7 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
+      <OwnerGuard>
       <div className="space-y-6">
         <Skeleton className="h-8 w-48" />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -130,10 +132,12 @@ export default function AnalyticsPage() {
           <Skeleton className="h-80" />
         </div>
       </div>
+      </OwnerGuard>
     );
   }
 
   return (
+    <OwnerGuard>
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Analytics</h1>
 
@@ -238,5 +242,6 @@ export default function AnalyticsPage() {
         </Card>
       </div>
     </div>
+    </OwnerGuard>
   );
 }

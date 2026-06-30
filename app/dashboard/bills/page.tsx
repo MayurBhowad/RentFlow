@@ -14,6 +14,7 @@ import { FileText, Plus, Search, IndianRupee, Calendar, User } from 'lucide-reac
 import { MonthlyBill, Tenant, UtilityBill, UtilityType } from '@/lib/types';
 import { getNextBillMonth } from '@/lib/billing';
 import { ensureDefaultUtilityTypes, dedupeUtilityTypesByName } from '@/lib/utility-types';
+import { getLinkedTenantIds, isOwnerOrManager } from '@/lib/scope';
 
 export default function BillsPage() {
   const { profile } = useAuth();
@@ -50,10 +51,16 @@ export default function BillsPage() {
       .select('*, tenant:tenants(full_name, property:properties(name))')
       .order('bill_month', { ascending: false });
 
-    if (profile?.role === 'owner' || profile?.role === 'manager') {
-      query = query.eq('owner_id', profile.id);
+    if (isOwnerOrManager(profile)) {
+      query = query.eq('owner_id', profile!.id);
     } else {
-      query = query.eq('tenant_id', profile!.id);
+      const tenantIds = await getLinkedTenantIds(supabase, profile!.id);
+      if (tenantIds.length === 0) {
+        setBills([]);
+        setLoading(false);
+        return;
+      }
+      query = query.in('tenant_id', tenantIds);
     }
 
     if (tenantFilter) {
@@ -66,6 +73,10 @@ export default function BillsPage() {
   };
 
   const fetchTenants = async () => {
+    if (!isOwnerOrManager(profile)) {
+      setTenants([]);
+      return;
+    }
     const { data } = await supabase
       .from('tenants')
       .select('*')
@@ -74,6 +85,10 @@ export default function BillsPage() {
   };
 
   const fetchUtilityTypes = async () => {
+    if (!isOwnerOrManager(profile)) {
+      setUtilityTypes([]);
+      return;
+    }
     await ensureDefaultUtilityTypes(supabase, profile!.id);
     const { data } = await supabase
       .from('utility_types')
@@ -176,7 +191,7 @@ export default function BillsPage() {
     setFormData({ ...formData, utilities: updated });
   };
 
-  const isOwner = profile?.role === 'owner' || profile?.role === 'manager';
+  const isOwner = isOwnerOrManager(profile);
 
   const filtered = bills.filter((b) =>
     (b.tenant as any)?.full_name?.toLowerCase().includes(search.toLowerCase()) ||

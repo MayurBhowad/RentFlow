@@ -29,6 +29,7 @@ import {
 } from 'recharts';
 import Link from 'next/link';
 import { MonthlyBill, Tenant } from '@/lib/types';
+import { getLinkedTenantIds, isOwnerOrManager } from '@/lib/scope';
 
 interface DashboardStats {
   total_properties: number;
@@ -47,7 +48,7 @@ export default function DashboardPage() {
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const isOwner = profile?.role === 'owner' || profile?.role === 'manager';
+  const isOwner = isOwnerOrManager(profile);
 
   useEffect(() => {
     if (authLoading) return;
@@ -120,13 +121,18 @@ export default function DashboardPage() {
           });
         }
 
-        const { data: bills } = await supabase
-          .from('monthly_bills')
-          .select('*, tenant:tenants(full_name), property:properties(name)')
-          .eq('tenant_id', profile!.id)
-          .order('bill_month', { ascending: false })
-          .limit(5);
-        setRecentBills(bills || []);
+        const tenantIds = await getLinkedTenantIds(supabase, profile!.id);
+        if (tenantIds.length === 0) {
+          setRecentBills([]);
+        } else {
+          const { data: bills } = await supabase
+            .from('monthly_bills')
+            .select('*, tenant:tenants(full_name), property:properties(name)')
+            .in('tenant_id', tenantIds)
+            .order('bill_month', { ascending: false })
+            .limit(5);
+          setRecentBills(bills || []);
+        }
       }
     } catch (error) {
       console.error('Dashboard error:', error);
