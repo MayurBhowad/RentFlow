@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FileText, Plus, Search, IndianRupee, Calendar, User } from 'lucide-react';
 import { MonthlyBill, Tenant, UtilityBill, UtilityType } from '@/lib/types';
 import { getNextBillMonth } from '@/lib/billing';
+import { isBillMonthWithinLease, isTenantBillable } from '@/lib/lease';
 import { ensureDefaultUtilityTypes, dedupeUtilityTypesByName } from '@/lib/utility-types';
 import { getLinkedTenantIds, isOwnerOrManager } from '@/lib/scope';
 
@@ -80,8 +81,9 @@ export default function BillsPage() {
     const { data } = await supabase
       .from('tenants')
       .select('*')
-      .eq('owner_id', profile!.id);
-    setTenants(data || []);
+      .eq('owner_id', profile!.id)
+      .in('status', ['active', 'notice_given']);
+    setTenants((data || []).filter(isTenantBillable));
   };
 
   const fetchUtilityTypes = async () => {
@@ -146,6 +148,18 @@ export default function BillsPage() {
     e.preventDefault();
     setSubmitError('');
     setSubmitting(true);
+
+    const tenant = tenants.find((t) => t.id === formData.tenant_id);
+    if (!tenant || !isTenantBillable(tenant)) {
+      setSubmitError('This tenant is not eligible for billing. Renew the lease or set status to active.');
+      setSubmitting(false);
+      return;
+    }
+    if (!isBillMonthWithinLease(tenant.lease_end, formData.bill_month)) {
+      setSubmitError('Bill month is after the tenant lease end date.');
+      setSubmitting(false);
+      return;
+    }
 
     const utilitiesJson = formData.utilities
       .filter((u) => u.utility_type_id && u.amount)

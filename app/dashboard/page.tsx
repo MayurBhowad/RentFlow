@@ -14,6 +14,7 @@ import {
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
+  Calendar,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -30,6 +31,7 @@ import {
 import Link from 'next/link';
 import { MonthlyBill, Tenant } from '@/lib/types';
 import { getLinkedTenantIds, isOwnerOrManager } from '@/lib/scope';
+import { formatLeaseEndDate } from '@/lib/lease';
 
 interface DashboardStats {
   total_properties: number;
@@ -45,6 +47,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentBills, setRecentBills] = useState<MonthlyBill[]>([]);
   const [overdueTenants, setOverdueTenants] = useState<Tenant[]>([]);
+  const [expiringLeases, setExpiringLeases] = useState<Tenant[]>([]);
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -63,6 +66,8 @@ export default function DashboardPage() {
     setLoading(true);
     try {
       if (isOwner) {
+        await supabase.rpc('process_expired_leases', { p_owner_id: profile!.id });
+
         const { data: statsData } = await supabase
           .rpc('get_owner_dashboard_stats', { p_owner_id: profile!.id });
         if (statsData?.[0]) setStats(statsData[0]);
@@ -83,6 +88,23 @@ export default function DashboardPage() {
           .limit(5);
         const uniqueTenants = Array.from(new Map((overdue || []).map((o: any) => [o.tenant.id, o.tenant])).values());
         setOverdueTenants(uniqueTenants as Tenant[]);
+
+        const today = new Date().toISOString().slice(0, 10);
+        const in30Days = new Date();
+        in30Days.setDate(in30Days.getDate() + 30);
+        const limit = in30Days.toISOString().slice(0, 10);
+
+        const { data: expiring } = await supabase
+          .from('tenants')
+          .select('*, property:properties(name)')
+          .eq('owner_id', profile!.id)
+          .in('status', ['active', 'notice_given'])
+          .not('lease_end', 'is', null)
+          .gte('lease_end', today)
+          .lte('lease_end', limit)
+          .order('lease_end', { ascending: true })
+          .limit(10);
+        setExpiringLeases(expiring || []);
 
         const { data: monthlyData } = await supabase
           .from('monthly_bills')
@@ -386,6 +408,39 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {isOwner && expiringLeases.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg text-amber-600 dark:text-amber-400 flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Leases Expiring Soon
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {expiringLeases.map((tenant) => (
+                <div
+                  key={tenant.id}
+                  className="flex items-center justify-between p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50"
+                >
+                  <div>
+                    <p className="font-medium">{tenant.full_name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {(tenant.property as { name?: string })?.name} · Ends {formatLeaseEndDate(tenant.lease_end)}
+                    </p>
+                  </div>
+                  <Link href="/dashboard/tenants">
+                    <Button variant="outline" size="sm">
+                      Manage
+                    </Button>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {isOwner && overdueTenants.length > 0 && (
         <Card>

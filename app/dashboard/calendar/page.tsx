@@ -6,9 +6,14 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
-import { MonthlyBill, UtilityBill } from '@/lib/types';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertTriangle, CheckCircle, Clock, KeyRound } from 'lucide-react';
+import { MonthlyBill, UtilityBill, Tenant } from '@/lib/types';
 import { getLinkedTenantIds, isOwnerOrManager } from '@/lib/scope';
+import { formatLeaseEndDate, getLeaseExpiryStatus } from '@/lib/lease';
+
+type LeaseCalendarTenant = Pick<Tenant, 'id' | 'full_name' | 'lease_end'> & {
+  property?: { name?: string };
+};
 
 const statusStyles: Record<MonthlyBill['status'], string> = {
   paid: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400',
@@ -71,23 +76,27 @@ function BillBreakdown({
 function CalendarDayCell({
   day,
   dayBills,
+  dayLeases,
   dateLabel,
   formatCurrency,
 }: {
   day: number;
   dayBills: MonthlyBill[];
+  dayLeases: LeaseCalendarTenant[];
   dateLabel: string;
   formatCurrency: (amount: number) => string;
 }) {
   const hasOverdue = dayBills.some((b) => b.status === 'overdue');
   const hasPending = dayBills.some((b) => b.status === 'pending' || b.status === 'partially_paid');
   const hasPaid = dayBills.some((b) => b.status === 'paid');
+  const hasLeaseEnd = dayLeases.length > 0;
   const totalDue = dayBills.reduce((sum, b) => sum + b.balance_due, 0);
 
   const cellClassName = `aspect-square border rounded-lg p-1 md:p-2 flex flex-col items-center justify-start relative transition-colors ${
-    dayBills.length > 0 ? 'cursor-pointer hover:ring-2 hover:ring-primary/20' : 'hover:bg-muted/50'
+    dayBills.length > 0 || hasLeaseEnd ? 'cursor-pointer hover:ring-2 hover:ring-primary/20' : 'hover:bg-muted/50'
   } ${
     hasOverdue ? 'border-rose-200 bg-rose-50 dark:bg-rose-950/20' :
+    hasLeaseEnd ? 'border-violet-200 bg-violet-50 dark:bg-violet-950/20' :
     hasPending ? 'border-amber-200 bg-amber-50 dark:bg-amber-950/20' :
     hasPaid ? 'border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20' : ''
   }`;
@@ -99,16 +108,19 @@ function CalendarDayCell({
         {hasOverdue && <AlertTriangle className="h-3 w-3 text-rose-500" />}
         {hasPending && <Clock className="h-3 w-3 text-amber-500" />}
         {hasPaid && <CheckCircle className="h-3 w-3 text-emerald-500" />}
+        {hasLeaseEnd && <KeyRound className="h-3 w-3 text-violet-500" />}
       </div>
-      {dayBills.length > 0 && (
-        <span className="text-[10px] text-muted-foreground mt-auto hidden md:block">
-          {dayBills.length} bill{dayBills.length > 1 ? 's' : ''}
+      {(dayBills.length > 0 || hasLeaseEnd) && (
+        <span className="text-[10px] text-muted-foreground mt-auto hidden md:block text-center leading-tight">
+          {dayBills.length > 0 && `${dayBills.length} bill${dayBills.length > 1 ? 's' : ''}`}
+          {dayBills.length > 0 && hasLeaseEnd && ' · '}
+          {hasLeaseEnd && `${dayLeases.length} lease${dayLeases.length > 1 ? 's' : ''}`}
         </span>
       )}
     </>
   );
 
-  if (dayBills.length === 0) {
+  if (dayBills.length === 0 && !hasLeaseEnd) {
     return <div className={cellClassName}>{cellContent}</div>;
   }
 
@@ -123,11 +135,30 @@ function CalendarDayCell({
         <div className="px-4 py-3 border-b bg-muted/40">
           <p className="font-semibold text-sm">{dateLabel}</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {dayBills.length} bill{dayBills.length > 1 ? 's' : ''} due
+            {dayBills.length > 0 && `${dayBills.length} bill${dayBills.length > 1 ? 's' : ''} due`}
+            {dayBills.length > 0 && hasLeaseEnd && ' · '}
+            {hasLeaseEnd && `${dayLeases.length} lease end${dayLeases.length > 1 ? 's' : ''}`}
             {totalDue > 0 && ` · ${formatCurrency(totalDue)} outstanding`}
           </p>
         </div>
         <div className="max-h-72 overflow-y-auto divide-y">
+          {dayLeases.map((tenant) => {
+            const leaseStatus = getLeaseExpiryStatus(tenant.lease_end);
+            return (
+              <div key={tenant.id} className="px-4 py-3 space-y-1">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-medium text-sm leading-tight">{tenant.full_name}</p>
+                  <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium bg-violet-100 text-violet-700 dark:bg-violet-950/50 dark:text-violet-400">
+                    Lease ends
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {(tenant.property as { name?: string })?.name} · {formatLeaseEndDate(tenant.lease_end)}
+                  {leaseStatus === 'expiring_soon' && ' · Expiring soon'}
+                </p>
+              </div>
+            );
+          })}
           {dayBills.map((bill) => (
             <div key={bill.id} className="px-4 py-3 space-y-1.5">
               <div className="flex items-start justify-between gap-2">
@@ -154,10 +185,14 @@ export default function CalendarPage() {
   const { profile } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [bills, setBills] = useState<MonthlyBill[]>([]);
+  const [leaseTenants, setLeaseTenants] = useState<LeaseCalendarTenant[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (profile?.id) fetchBills();
+    if (profile?.id) {
+      fetchBills();
+      if (isOwnerOrManager(profile)) fetchLeaseTenants();
+    }
   }, [profile]);
 
   const fetchBills = async () => {
@@ -184,6 +219,16 @@ export default function CalendarPage() {
     setLoading(false);
   };
 
+  const fetchLeaseTenants = async () => {
+    const { data } = await supabase
+      .from('tenants')
+      .select('id, full_name, lease_end, property:properties(name)')
+      .eq('owner_id', profile!.id)
+      .not('lease_end', 'is', null)
+      .in('status', ['active', 'notice_given', 'inactive']);
+    setLeaseTenants((data || []) as LeaseCalendarTenant[]);
+  };
+
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
@@ -196,6 +241,11 @@ export default function CalendarPage() {
   const getBillsForDay = (day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return bills.filter((b) => b.due_date === dateStr);
+  };
+
+  const getLeasesForDay = (day: number) => {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return leaseTenants.filter((t) => t.lease_end === dateStr);
   };
 
   const formatCurrency = (amount: number) => {
@@ -241,6 +291,7 @@ export default function CalendarPage() {
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
               const dayBills = getBillsForDay(day);
+              const dayLeases = getLeasesForDay(day);
               const dateLabel = new Date(year, month, day).toLocaleDateString('en-IN', {
                 weekday: 'long',
                 day: 'numeric',
@@ -253,6 +304,7 @@ export default function CalendarPage() {
                   key={day}
                   day={day}
                   dayBills={dayBills}
+                  dayLeases={dayLeases}
                   dateLabel={dateLabel}
                   formatCurrency={formatCurrency}
                 />
