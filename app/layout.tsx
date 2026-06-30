@@ -6,7 +6,7 @@ import { ThemeProvider } from '@/components/layout/ThemeProvider';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'RentFlow - Rent & Utility Expense Tracker',
+  title: 'Dwello - Rent & Utility Expense Tracker',
   description: 'Modern rental and utility expense management for property owners and tenants',
   openGraph: {
     images: [

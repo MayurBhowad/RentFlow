@@ -139,12 +139,12 @@ BEGIN
   IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_cron') THEN
     CREATE EXTENSION IF NOT EXISTS pg_cron;
 
-    IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'rentflow-process-expired-leases') THEN
-      PERFORM cron.unschedule('rentflow-process-expired-leases');
+    IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'dwello-process-expired-leases') THEN
+      PERFORM cron.unschedule('dwello-process-expired-leases');
     END IF;
 
     PERFORM cron.schedule(
-      'rentflow-process-expired-leases',
+      'dwello-process-expired-leases',
       '0 6 * * *',
       $$SELECT process_expired_leases(NULL)$$
     );

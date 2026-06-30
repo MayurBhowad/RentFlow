@@ -157,22 +157,22 @@ export const pricingPlans = [
 
 export const faqs = [
   {
-    question: 'Who is RentFlow for?',
+    question: 'Who is Dwello for?',
     answer:
-      'RentFlow is designed for property owners, landlords, property managers, and tenants in India who want a simple way to manage rent, utilities, and payments without spreadsheets.',
+      'Dwello is designed for property owners, landlords, property managers, and tenants in India who want a simple way to manage rent, utilities, and payments without spreadsheets.',
   },
   {
-    question: 'Can tenants use RentFlow too?',
+    question: 'Can tenants use Dwello too?',
     answer:
       'Yes. Tenants get their own dashboard to view bills, check payment history, see upcoming due dates, and receive notifications — all linked to their landlord\'s account.',
   },
   {
     question: 'What payment methods are supported?',
     answer:
-      'You can record payments made via UPI, bank transfer, cash, cheque, or other methods. RentFlow tracks the payment history; actual payment collection happens outside the app.',
+      'You can record payments made via UPI, bank transfer, cash, cheque, or other methods. Dwello tracks the payment history; actual payment collection happens outside the app.',
   },
   {
-    question: 'Does RentFlow handle utility bills?',
+    question: 'Does Dwello handle utility bills?',
     answer:
       'Yes. Owners can define utility types (fixed or variable), attach them to monthly bills, and track consumption and charges alongside rent.',
   },

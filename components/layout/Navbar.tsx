@@ -96,7 +96,7 @@ export default function Navbar() {
         <div className="flex items-center gap-2 px-6 py-5">
           <Link href="/dashboard" className="flex items-center gap-2 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg">
             <Home className="h-5 w-5" />
-            <span className="font-bold text-lg">RentFlow</span>
+            <span className="font-bold text-lg">Dwello</span>
           </Link>
         </div>
         <div className="flex-1 px-3 py-2 space-y-1 overflow-auto">
@@ -137,7 +137,7 @@ export default function Navbar() {
               <div className="flex items-center gap-2 px-6 py-5">
                 <Link href="/dashboard" className="flex items-center gap-2 bg-primary text-primary-foreground px-3 py-1.5 rounded-lg">
                   <Home className="h-5 w-5" />
-                  <span className="font-bold text-lg">RentFlow</span>
+                  <span className="font-bold text-lg">Dwello</span>
                 </Link>
               </div>
               <div className="px-3 py-2 space-y-1">
@@ -146,7 +146,7 @@ export default function Navbar() {
             </SheetContent>
           </Sheet>
           <Link href="/dashboard" className="font-bold text-lg">
-            RentFlow
+            Dwello
           </Link>
         </div>
         <div className="flex items-center gap-2">

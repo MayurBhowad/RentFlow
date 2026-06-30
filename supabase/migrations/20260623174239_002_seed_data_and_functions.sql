@@ -1,5 +1,5 @@
 /*
-# RentFlow - Seed Data and Helper Functions
+# Dwello - Seed Data and Helper Functions
 
 1. New Functions
 - `get_dashboard_stats` - Returns aggregated dashboard metrics for owners

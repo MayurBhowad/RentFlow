@@ -95,14 +95,14 @@ export default function RegisterPage() {
         <div className="flex justify-center mb-8">
           <Link href="/" className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-xl">
             <Home className="h-6 w-6" />
-            <span className="text-xl font-bold">RentFlow</span>
+            <span className="text-xl font-bold">Dwello</span>
           </Link>
         </div>
         <Card className="border-0 shadow-xl">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">Create Account</CardTitle>
             <CardDescription className="text-center">
-              Get started with RentFlow today
+              Get started with Dwello today
             </CardDescription>
           </CardHeader>
           <CardContent>

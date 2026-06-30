@@ -20,7 +20,7 @@ export default function LandingHeader() {
         <Link href="/" className="flex items-center gap-2">
           <div className="flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-primary-foreground">
             <Home className="h-5 w-5" />
-            <span className="text-lg font-bold">RentFlow</span>
+            <span className="text-lg font-bold">Dwello</span>
           </div>
         </Link>
 

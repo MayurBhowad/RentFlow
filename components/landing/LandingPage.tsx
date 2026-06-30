@@ -51,7 +51,7 @@ export default function LandingPage() {
               <span className="text-primary">in one place</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
-              RentFlow helps property owners and tenants track rent, generate utility bills,
+              Dwello helps property owners and tenants track rent, generate utility bills,
               record payments, and stay on top of collections — without spreadsheets or chaos.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -93,7 +93,7 @@ export default function LandingPage() {
               Built for owners and tenants
             </h2>
             <p className="mt-4 text-muted-foreground">
-              Whether you manage properties or rent one, RentFlow gives you the tools you need.
+              Whether you manage properties or rent one, Dwello gives you the tools you need.
             </p>
           </div>
           <div className="mt-12 grid gap-6 md:grid-cols-2">
@@ -132,7 +132,7 @@ export default function LandingPage() {
               Everything you need to manage rentals
             </h2>
             <p className="mt-4 text-muted-foreground">
-              From property setup to payment tracking — RentFlow covers the full rental lifecycle.
+              From property setup to payment tracking — Dwello covers the full rental lifecycle.
             </p>
           </div>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -162,7 +162,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              How RentFlow works
+              How Dwello works
             </h2>
             <p className="mt-4 text-muted-foreground">
               Get up and running in minutes. No complex setup required.
@@ -306,7 +306,7 @@ export default function LandingPage() {
                 Ready to simplify your rental management?
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-primary-foreground/90">
-                Join property owners and tenants who use RentFlow to stay organized,
+                Join property owners and tenants who use Dwello to stay organized,
                 get paid on time, and never lose track of a bill again.
               </p>
               <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">

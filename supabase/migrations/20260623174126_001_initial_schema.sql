@@ -1,5 +1,5 @@
 /*
-# RentFlow - Initial Schema Migration
+# Dwello - Initial Schema Migration
 
 1. New Tables
 - `profiles` - Extended user profiles linked to auth.users

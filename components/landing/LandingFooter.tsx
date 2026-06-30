@@ -10,7 +10,7 @@ export default function LandingFooter() {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-primary-foreground">
                 <Home className="h-4 w-4" />
-                <span className="font-bold">RentFlow</span>
+                <span className="font-bold">Dwello</span>
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -50,7 +50,7 @@ export default function LandingFooter() {
 
         <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t pt-8 sm:flex-row">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} RentFlow. All rights reserved.
+            &copy; {new Date().getFullYear()} Dwello. All rights reserved.
           </p>
           <p className="text-sm text-muted-foreground">
             Rent &amp; utility expense tracker for India
